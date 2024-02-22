@@ -1,18 +1,30 @@
-name: Train on Push
+name: ClearML Pipeline
 
-on: [push]
+on:
+  push:
+    branches:
+      - main  # Trigger on pushes to the main branch
+    paths:
+      - 'MyLocalModel.py'  # Specify the path to your code files
 
 jobs:
-
+  run_clearml_pipeline:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          python-version: '3.11.7'  # Replace with your Python version
+          python-version: '3.11.7'
+      
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run ClearML task
-        run: python MyLocalModel.py  # Replace with your file's name
+        run: |
+          pip install clearml
+
+      - name: Run ClearML Pipeline
         env:
-          # Add ClearML API key environment variable
           CLEARML_API_KEY: PSLFJV7QS183E1W2EELD
+        run: |
+          python MyLocalModel.py
