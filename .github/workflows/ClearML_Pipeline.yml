@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main  
+    paths:
+      - 'MyLocalModel.py' 
 
 jobs:
   run_clearml_pipeline:
