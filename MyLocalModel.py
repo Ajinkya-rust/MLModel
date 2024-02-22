@@ -1,16 +1,15 @@
 import tensorflow as tf
 from clearml import PipelineDecorator
-import os
 from clearml import Task, PipelineDecorator, Model
 
+#pipeline decorator
 @PipelineDecorator.component(cache=True, execution_queue="default")
 def step(size: int):
     import numpy as np
     return np.random.random(size=size)
 
-
 @PipelineDecorator.pipeline(
-    name='ingest',
+    name='Developement',
     project='My Local Model',
     version='0.1'
 )
@@ -81,7 +80,6 @@ def preprocess_data(x_train, x_test):
     return x_train_scaled, x_test_scaled
 
 # Load and preprocess data
-# (Assuming you have a function `load_data()` and `preprocess_data()` defined)
 x_train, y_train, x_test, y_test = load_data()
 x_train, x_test = preprocess_data(x_train, x_test)
 
