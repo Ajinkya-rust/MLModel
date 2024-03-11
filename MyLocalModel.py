@@ -1,122 +1,91 @@
 import tensorflow as tf
+import numpy as np
 from clearml import PipelineDecorator, Task
-from sklearn.model_selection import train_test_split
 
+# Initialize ClearML task
+task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        for gpu in gpus: 
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        print(e)
-
-# Define pipeline components using the @PipelineDecorator.component decorator
-@PipelineDecorator.component(cache=True, execution_queue="default")
+# Define data loading function
+@PipelineDecorator.component(cache=True)
 def load_data():
-    # Placeholder example: Load dataset (e.g., MNIST)
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-    # Normalize pixel values to range [0, 1]
     x_train = x_train.astype('float32') / 255.0
     x_test = x_test.astype('float32') / 255.0
     return x_train, y_train, x_test, y_test
 
-@PipelineDecorator.component(cache=True, execution_queue="default")
-def split_data(data):
-    # Convert numpy arrays to TensorFlow datasets
-    dataset = tf.data.Dataset.from_tensor_slices((data[0], data[1]))
-    
-    # Shuffle and batch the dataset
-    dataset = dataset.shuffle(buffer_size=len(data[0])).batch(batch_size=32)
-    
-    # Split dataset into training and testing sets
-    train_size = int(0.8 * len(data[0]))
-    train_dataset = dataset.take(train_size)
-    test_dataset = dataset.skip(train_size)
-    
-    # Convert datasets back to numpy arrays
-    x_train, y_train = [], []
-    x_test, y_test = [], []
-    for x, y in train_dataset:
-        x_train.append(x.numpy())
-        y_train.append(y.numpy())
-    for x, y in test_dataset:
-        x_test.append(x.numpy())
-        y_test.append(y.numpy())
-    
-    # Concatenate batches
-    x_train = np.concatenate(x_train)
-    y_train = np.concatenate(y_train)
-    x_test = np.concatenate(x_test)
-    y_test = np.concatenate(y_test)
-    
-    return x_train, x_test, y_train, y_test
+# Define data preprocessing function
+@PipelineDecorator.component(cache=True)
+def preprocess_data(data):
+    x_train, y_train, x_test, y_test = data
+    # Reshape data to 2D arrays
+    x_train = x_train.reshape(x_train.shape[0], -1)
+    x_test = x_test.reshape(x_test.shape[0], -1)
+    return x_train, y_train, x_test, y_test
 
-@PipelineDecorator.component(cache=True, execution_queue="default")
+# Define feature engineering function (dummy function for demonstration)
+@PipelineDecorator.component(cache=True)
+def feature_engineering(data):
+    # Dummy feature engineering: Add noise to the data
+    x_train, y_train, x_test, y_test = data
+    x_train += np.random.normal(loc=0, scale=0.1, size=x_train.shape)
+    x_test += np.random.normal(loc=0, scale=0.1, size=x_test.shape)
+    return x_train, y_train, x_test, y_test
+
+# Define data transformation function (dummy function for demonstration)
+@PipelineDecorator.component(cache=True)
+def data_transform(data):
+    # Dummy data transformation: Apply min-max scaling
+    x_train, y_train, x_test, y_test = data
+    x_train = (x_train - np.min(x_train)) / (np.max(x_train) - np.min(x_train))
+    x_test = (x_test - np.min(x_test)) / (np.max(x_test) - np.min(x_test))
+    return x_train, y_train, x_test, y_test
+
+# Define model selection function
+@PipelineDecorator.component(cache=True)
 def select_model():
-    # Placeholder example: Model selection
-    # For simplicity, returning a predefined model
-    return tf.keras.Sequential([
+    model = tf.keras.Sequential([
         tf.keras.layers.Flatten(input_shape=(28, 28)),
         tf.keras.layers.Dense(128, activation='relu'),
         tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(10, activation='softmax')
     ])
+    return model
 
-# Define the pipeline logic using the @PipelineDecorator.pipeline decorator
-@PipelineDecorator.pipeline(
-    name='Development',
-    project='My Local Model',
-    version='0.1'
-)
-def pipeline_logic(do_stuff: bool):
-    if do_stuff:
-        # Call pipeline components in sequence
-        data = load_data()
-        x_train, x_test, y_train, y_test = split_data(data)
-        model = select_model()
-        return x_train, y_train, x_test, y_test, model
-
-if __name__ == '__main__':
-    import os
-    if os.getenv('CI') != 'true':
-        # Run the pipeline on the current machine, for local debugging
-        PipelineDecorator.run_locally()
-
-        # Execute the pipeline logic with do_stuff=True
-        x_train, y_train, x_test, y_test, model = pipeline_logic(do_stuff=True)
-
-        print('Data Collection, Preprocessing, and Transformation Steps Completed')
-
-        # Initialize a ClearML task for each step of the pipeline
-        tasks = []
-        for step_name in ['Model Training']:
-            tasks.append(Task.init(project_name="My Local Model", task_name=step_name))
-
-    # Log hyperparameters
-    task_params = {
-        'learning_rate': 0.001,
-        'batch_size': 32,
-        'num_epochs': 10
-    }
-    tasks[0].connect(task_params)
-
-    # Compile the model
-    model.compile(optimizer='adam',
-                  loss='sparse_categorical_crossentropy',
-                  metrics=['accuracy'])
-
-    # Train the model
-    model.fit(x_train, y_train, epochs=task_params['num_epochs'], batch_size=task_params['batch_size'])
-
-    # Evaluate the model
+# Define model evaluation function
+@PipelineDecorator.component(cache=True)
+def evaluate_model(model, x_test, y_test):
     loss, accuracy = model.evaluate(x_test, y_test)
     print(f'Test loss: {loss}, Test accuracy: {accuracy}')
+    return loss, accuracy, model
 
-    # Log metrics
-    tasks[0].upload_artifact('model.h5', model)  # Upload model artifact
-    tasks[0].get_logger().report_scalar("test_loss", "scalar", loss, iteration=task_params['num_epochs'])
-    tasks[0].get_logger().report_scalar("test_accuracy", "scalar", accuracy, iteration=task_params['num_epochs'])
+# Define the pipeline logic
+@PipelineDecorator.pipeline(name='MLOps Pipeline', project='MLOps Example', version='1.0')
+def mlops_pipeline():
+    data = load_data()
+    data = preprocess_data(data)
+    data = feature_engineering(data)
+    data = data_transform(data)
+    best_accuracy = 0
+    best_model = None
+    for _ in range(3):  # Evaluate three different models
+        model = select_model()
+        _, accuracy, model = evaluate_model(model, data[2], data[3])  # Passing x_test, y_test for evaluation
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            best_model = model
+    return data, best_model, best_accuracy
 
-    print('Model Training Preparation, Model Selection, and Model Training Steps Completed')
+# Run the pipeline locally
+if __name__ == '__main__':
+    # Run the pipeline on the current machine, for local debugging
+    PipelineDecorator.run_locally()
 
+    # Execute the pipeline logic
+    data, best_model, best_accuracy = mlops_pipeline()
+
+    # Log metrics to ClearML
+    task.upload_artifact('model.h5', best_model)  # Upload best model artifact
+    task.get_logger().report_scalar("best_accuracy", "scalar", best_accuracy, step=0)
+
+    # Close ClearML task
+    task.close()
