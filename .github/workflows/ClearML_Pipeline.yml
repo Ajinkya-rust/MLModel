@@ -25,3 +25,6 @@ jobs:
 
     - name: Run pipeline logic
       run: python MyLocalModel.py
+      env:
+        CLEARML_API_HOST: https://api.community.clear.ml
+        CLEARML_API_KEY: 	Y0ELY1U3XT27XIVQVZIQ
