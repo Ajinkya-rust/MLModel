@@ -1,6 +1,11 @@
 import tensorflow as tf
 import numpy as np
 from clearml import PipelineDecorator, Task
+import os
+
+# Set ClearML API host and API key
+os.environ['CLEARML_API_HOST'] = 'https://api.community.clear.ml'
+os.environ['CLEARML_API_KEY'] = 'Y0ELY1U3XT27XIVQVZIQ'
 
 # Initialize ClearML task
 task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
