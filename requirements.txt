@@ -1,0 +1,6 @@
+
+clearml 
+scikit_learn 
+tensorflow 
+tensorflow_intel 
+#changes
