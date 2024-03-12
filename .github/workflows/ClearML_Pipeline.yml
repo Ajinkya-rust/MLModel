@@ -26,11 +26,8 @@ jobs:
     - name: Install ClearML
       run: pip install clearml
 
-    - name: Configure ClearML
-      run: clearml-init
-
     - name: Run pipeline logic
       run: python MyLocalModel.py
       env:
-        CLEARML_API_HOST: https://api.community.clear.ml
+        CLEARML_API_HOST: https://app.clear.ml
         CLEARML_API_KEY: 	Y0ELY1U3XT27XIVQVZIQ
