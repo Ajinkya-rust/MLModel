@@ -1,11 +1,7 @@
+import os
 import tensorflow as tf
 import numpy as np
 from clearml import PipelineDecorator, Task
-import os
-
-# Set ClearML API host and API key
-os.environ['CLEARML_API_HOST'] = 'https://api.community.clear.ml'
-os.environ['CLEARML_API_KEY'] = 'Y0ELY1U3XT27XIVQVZIQ'
 
 # Initialize ClearML task
 task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
@@ -14,6 +10,12 @@ task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
 @PipelineDecorator.component(cache=True)
 def load_data():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    
+    # Use a subset of the dataset for debugging
+    sample_size = 1000
+    x_train, y_train = x_train[:sample_size], y_train[:sample_size]
+    x_test, y_test = x_test[:sample_size], y_test[:sample_size]
+    
     x_train = x_train.astype('float32') / 255.0
     x_test = x_test.astype('float32') / 255.0
     return x_train, y_train, x_test, y_test
@@ -43,9 +45,13 @@ def data_transform(data):
     x_train, y_train, x_test, y_test = data
     x_train = (x_train - np.min(x_train)) / (np.max(x_train) - np.min(x_train))
     x_test = (x_test - np.min(x_test)) / (np.max(x_test) - np.min(x_test))
+    
+    # Reshape data to match the expected input shape of the model
+    x_train = x_train.reshape(x_train.shape[0], 28, 28)
+    x_test = x_test.reshape(x_test.shape[0], 28, 28)
+    
     return x_train, y_train, x_test, y_test
 
-# Define model selection function
 @PipelineDecorator.component(cache=True)
 def select_model():
     model = tf.keras.Sequential([
@@ -54,14 +60,13 @@ def select_model():
         tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(10, activation='softmax')
     ])
-    return model
 
-# Define model evaluation function
-@PipelineDecorator.component(cache=True)
-def evaluate_model(model, x_test, y_test):
-    loss, accuracy = model.evaluate(x_test, y_test)
-    print(f'Test loss: {loss}, Test accuracy: {accuracy}')
-    return loss, accuracy, model
+    # Compile the model
+    model.compile(optimizer='adam',
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    return model
 
 # Define the pipeline logic
 @PipelineDecorator.pipeline(name='MLOps Pipeline', project='MLOps Example', version='1.0')
@@ -70,15 +75,13 @@ def mlops_pipeline():
     data = preprocess_data(data)
     data = feature_engineering(data)
     data = data_transform(data)
-    best_accuracy = 0
-    best_model = None
-    for _ in range(3):  # Evaluate three different models
-        model = select_model()
-        _, accuracy, model = evaluate_model(model, data[2], data[3])  # Passing x_test, y_test for evaluation
-        if accuracy > best_accuracy:
-            best_accuracy = accuracy
-            best_model = model
-    return data, best_model, best_accuracy
+    best_model = select_model()
+    
+    # Save best model locally
+    model_path = os.path.join(os.getcwd(), 'best_model.h5')
+    best_model.save(model_path)
+    
+    return data, model_path
 
 # Run the pipeline locally
 if __name__ == '__main__':
@@ -86,11 +89,10 @@ if __name__ == '__main__':
     PipelineDecorator.run_locally()
 
     # Execute the pipeline logic
-    data, best_model, best_accuracy = mlops_pipeline()
+    data, model_path = mlops_pipeline()
 
-    # Log metrics to ClearML
-    task.upload_artifact('model.h5', best_model)  # Upload best model artifact
-    task.get_logger().report_scalar("best_accuracy", "scalar", best_accuracy, step=0)
+    # Upload best model artifact to ClearML
+    task.upload_artifact('best_model.h5', model_path)
 
     # Close ClearML task
     task.close()
