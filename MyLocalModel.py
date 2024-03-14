@@ -5,8 +5,7 @@ from clearml import PipelineDecorator, Task
 
 # Set ClearML credentials
 import clearml
-clearml.set_project('MLOps Example', 'MLOps Example')
-clearml.set_credentials(api_token='	3GAKZJEUDE9ZCWBECVS7', web_host='https://app.clear.ml')
+clearml.set_credentials(api_token='3GAKZJEUDE9ZCWBECVS7', web_host='https://app.clear.ml')
 
 # Define data loading function
 @PipelineDecorator.component(cache=True, execution_queue="default")
