@@ -1,4 +1,4 @@
-name: Initialize ClearML
+name: ClearML CI/CD Pipeline
 
 on:
   push:
@@ -6,9 +6,9 @@ on:
       - main  # Set your branch here
 
 jobs:
-  initialize_clearml:
+  MLOps_Project:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -21,13 +21,19 @@ jobs:
       - name: Install ClearML
         run: pip install clearml
 
-      - name: Create environment file
+      - name: Create environment file for ClearML configuration
         run: echo "CLEARML_CONFIG_FILE=clearml.conf" >> $GITHUB_ENV
 
       - name: Initialize ClearML
         run: clearml-init
         env:
           CLEARML_CONFIG_FILE: ${{ env.CLEARML_CONFIG_FILE }}
-      
+
+      - name: Install TensorFlow
+        run: pip install tensorflow
+
+      - name: Install NumPy
+        run: pip install numpy
+
       - name: Run Python file
         run: python MyLocalModel.py
