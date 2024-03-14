@@ -3,11 +3,10 @@ import tensorflow as tf
 import numpy as np
 from clearml import PipelineDecorator, Task
 
-# Initialize ClearML task
-task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
-
+os.environ["CLEARML_API_HOST"] = "https://app.clear.ml"
+os.environ["CLEARML_API_KEY"] = "Y0ELY1U3XT27XIVQVZIQ"
 # Define data loading function
-@PipelineDecorator.component(cache=True)
+@PipelineDecorator.component(cache=True, execution_queue="default")
 def load_data():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     
@@ -21,7 +20,7 @@ def load_data():
     return x_train, y_train, x_test, y_test
 
 # Define data preprocessing function
-@PipelineDecorator.component(cache=True)
+@PipelineDecorator.component(cache=True, execution_queue="default")
 def preprocess_data(data):
     x_train, y_train, x_test, y_test = data
     # Reshape data to 2D arrays
@@ -30,7 +29,7 @@ def preprocess_data(data):
     return x_train, y_train, x_test, y_test
 
 # Define feature engineering function (dummy function for demonstration)
-@PipelineDecorator.component(cache=True)
+@PipelineDecorator.component(cache=True, execution_queue="default")
 def feature_engineering(data):
     # Dummy feature engineering: Add noise to the data
     x_train, y_train, x_test, y_test = data
@@ -39,7 +38,7 @@ def feature_engineering(data):
     return x_train, y_train, x_test, y_test
 
 # Define data transformation function (dummy function for demonstration)
-@PipelineDecorator.component(cache=True)
+@PipelineDecorator.component(cache=True, execution_queue="default")
 def data_transform(data):
     # Dummy data transformation: Apply min-max scaling
     x_train, y_train, x_test, y_test = data
@@ -52,7 +51,7 @@ def data_transform(data):
     
     return x_train, y_train, x_test, y_test
 
-@PipelineDecorator.component(cache=True)
+@PipelineDecorator.component(cache=True, execution_queue="default")
 def select_model():
     model = tf.keras.Sequential([
         tf.keras.layers.Flatten(input_shape=(28, 28)),
@@ -70,26 +69,30 @@ def select_model():
 
 # Define the pipeline logic
 @PipelineDecorator.pipeline(name='MLOps Pipeline', project='MLOps Example', version='1.0')
-def mlops_pipeline():
-    data = load_data()
-    data = preprocess_data(data)
-    data = feature_engineering(data)
-    data = data_transform(data)
-    best_model = select_model()
-    
-    # Save best model locally
-    model_path = os.path.join(os.getcwd(), 'best_model.h5')
-    best_model.save(model_path)
-    
-    return data, model_path
+def mlops_pipeline(do_stuff: bool):
+    if do_stuff:
+        data = load_data()
+        data = preprocess_data(data)
+        data = feature_engineering(data)
+        data = data_transform(data)
+        best_model = select_model()
+        
+        # Save best model locally
+        model_path = os.path.join(os.getcwd(), 'best_model.h5')
+        best_model.save(model_path)
+        
+        return data, model_path
+    else:
+        print("Not doing anything in the pipeline as 'do_stuff' is set to False.")
 
 # Run the pipeline locally
 if __name__ == '__main__':
-    # Run the pipeline on the current machine, for local debugging
+    # Execute the pipeline logic with do_stuff=True
     PipelineDecorator.run_locally()
+    data, model_path = mlops_pipeline(do_stuff=True)
 
-    # Execute the pipeline logic
-    data, model_path = mlops_pipeline()
+        # Initialize ClearML task
+    task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
 
     # Upload best model artifact to ClearML
     task.upload_artifact('best_model.h5', model_path)
