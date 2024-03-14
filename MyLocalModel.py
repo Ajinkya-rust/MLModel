@@ -2,6 +2,10 @@ import os
 import tensorflow as tf
 import numpy as np
 from clearml import PipelineDecorator, Task
+import clearml
+
+# Set your ClearML credentials
+clearml.config.set('api.credentials', {'access_key': '3GAKZJEUDE9ZCWBECVS7', 'secret_key': 'QU41dCWT37kTnqgA796GoxLXDMITk8rdsc42SrGniUXqNq4xNv', 'web.server': 'https://app.clear.ml'})
 
 
 # Define data loading function
@@ -84,17 +88,16 @@ def mlops_pipeline(do_stuff: bool):
     else:
         print("Not doing anything in the pipeline as 'do_stuff' is set to False.")
 
-# Run the pipeline locally
+# Initialize ClearML task
+task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
+
+# Execute the pipeline logic remotely with do_stuff=True
 if __name__ == '__main__':
-    # Execute the pipeline logic with do_stuff=True
-    PipelineDecorator.run_locally()
+    PipelineDecorator.run_remotely(queue_name='default')
     data, model_path = mlops_pipeline(do_stuff=True)
 
-        # Initialize ClearML task
-    task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
+# Upload best model artifact to ClearML
+task.upload_artifact('best_model.h5', model_path)
 
-    # Upload best model artifact to ClearML
-    task.upload_artifact('best_model.h5', model_path)
-
-    # Close ClearML task
-    task.close()
+# Close ClearML task
+task.close()
