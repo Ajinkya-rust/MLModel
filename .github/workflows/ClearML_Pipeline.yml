@@ -28,3 +28,6 @@ jobs:
         run: clearml-init
         env:
           CLEARML_CONFIG_FILE: ${{ env.CLEARML_CONFIG_FILE }}
+      
+      - name: Run Python file
+        run: python MyLocalModel.py
