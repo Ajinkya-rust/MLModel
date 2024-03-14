@@ -37,3 +37,6 @@ jobs:
 
       - name: Run Python file
         run: python MyLocalModel.py
+
+      - name: Submit pipeline for remote execution
+        run: clearml-pipe submit --queue default --name "MLOps Pipeline"   
