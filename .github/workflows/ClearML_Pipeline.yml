@@ -1,4 +1,4 @@
-name: ClearML CI/CD Pipeline
+name: Initialize ClearML
 
 on:
   push:
@@ -6,13 +6,9 @@ on:
       - main  # Set your branch here
 
 jobs:
-  MLOps_Project:
-    env:
-      CLEARML_API_ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
-      CLEARML_API_SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      CLEARML_API_HOST: ${{ secrets.CLEARML_API_HOST }}
-    runs-on: ubuntu-20.04
-  
+  initialize_clearml:
+    runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -21,21 +17,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
-          
+
       - name: Install ClearML
         run: pip install clearml
-      - name: Install TensorFlow
-        run: pip install tensorflow
-      - name: Install NumPy
-        run: pip install numpy
 
       - name: Initialize ClearML
-        run: |
-         python -c "from clearml import Task; Task.init(project_name='MLOps Example', task_name='MLOps with ClearML', api_key='3GAKZJEUDE9ZCWBECVS7', api_secret='QU41dCWT37kTnqgA796GoxLXDMITk8rdsc42SrGniUXqNq4xNv')"
-
-
-
-      - name: Start the task
-        id: launch_task
-        run: |
-          python MyLocalModel.py
+        run: clearml-init clearml.conf
+        
+      - name: Run Python file
+        run: python MyLocalModel.py
