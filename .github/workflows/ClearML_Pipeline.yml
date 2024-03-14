@@ -31,7 +31,7 @@ jobs:
 
       - name: Initialize ClearML
         run: |
-          python -c "from clearml import Task; Task.init(project_name='MLOps Example', task_name='MLOps with ClearML', api_host='${CLEARML_API_HOST}', api_key='${CLEARML_API_ACCESS_KEY}', api_secret='${CLEARML_API_SECRET_KEY}')"
+          python -c "from clearml import Task; Task.init(project_name='MLOps Example', task_name='MLOps with ClearML', api_host='https://app.clear.ml', api_key='3GAKZJEUDE9ZCWBECVS7', api_secret='QU41dCWT37kTnqgA796GoxLXDMITk8rdsc42SrGniUXqNq4xNv')"
 
       - name: Start the task
         id: launch_task
