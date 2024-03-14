@@ -6,30 +6,26 @@ on:
       - main  # Set your branch here
 
 jobs:
-  build:
-    runs-on: windows-latest
+  task-stats-to-comment:
+    env:
+      CLEARML_API_ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+      CLEARML_API_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      CLEARML_API_HOST: ${{ secrets.CLEARML_API_HOST }}
+    runs-on: ubuntu-20.04
   
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          
+      - name: Install ClearML
+        run: pip install clearml
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        
-    - name: Install ClearML
-      run: pip install clearml
-
-      env:
-        CLEARML_API_HOST: https://app.clear.ml
-        CLEARML_API_KEY: 	Y0ELY1U3XT27XIVQVZIQ
-
-    - name: Run pipeline logic
-      run: python MyLocalModel.py
-      
+      - name: Start the task
+        id: launch_task
+        run: |
+          python MyLocalModel.py
