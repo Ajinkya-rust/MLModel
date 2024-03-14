@@ -3,9 +3,8 @@ import tensorflow as tf
 import numpy as np
 from clearml import PipelineDecorator, Task
 
-# Set ClearML credentials
-import clearml
-clearml.set_credentials(api_token='3GAKZJEUDE9ZCWBECVS7', web_host='https://app.clear.ml')
+# Set ClearML project and task
+task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
 
 # Define data loading function
 @PipelineDecorator.component(cache=True, execution_queue="default")
@@ -86,9 +85,6 @@ def mlops_pipeline(do_stuff: bool):
         return data, model_path
     else:
         print("Not doing anything in the pipeline as 'do_stuff' is set to False.")
-
-# Initialize ClearML task
-task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
 
 # Execute the pipeline logic remotely with do_stuff=True
 if __name__ == '__main__':
