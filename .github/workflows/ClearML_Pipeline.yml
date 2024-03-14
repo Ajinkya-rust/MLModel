@@ -24,6 +24,12 @@ jobs:
           
       - name: Install ClearML
         run: pip install clearml
+      - name: Install TensorFlow
+        run: pip install tensorflow
+      - name: Install NumPy
+        run: pip install numpy
+      
+
 
       - name: Start the task
         id: launch_task
