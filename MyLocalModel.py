@@ -1,10 +1,8 @@
-import os
 import tensorflow as tf
 import numpy as np
 from clearml import PipelineDecorator, Task
 
-os.environ["CLEARML_API_HOST"] = "https://app.clear.ml"
-os.environ["CLEARML_API_KEY"] = "Y0ELY1U3XT27XIVQVZIQ"
+
 # Define data loading function
 @PipelineDecorator.component(cache=True, execution_queue="default")
 def load_data():
