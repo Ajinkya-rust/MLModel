@@ -6,7 +6,7 @@ on:
       - main  # Set your branch here
 
 jobs:
-  task-stats-to-comment:
+  MLOps_Project:
     env:
       CLEARML_API_ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
       CLEARML_API_SECRET_KEY: ${{ secrets.SECRET_KEY }}
@@ -28,8 +28,10 @@ jobs:
         run: pip install tensorflow
       - name: Install NumPy
         run: pip install numpy
-      
 
+      - name: Initialize ClearML
+        run: |
+          python -c "from clearml import Task; Task.init(project_name='MLOps Example', task_name='MLOps with ClearML', api_host='${CLEARML_API_HOST}', api_key='${CLEARML_API_ACCESS_KEY}', api_secret='${CLEARML_API_SECRET_KEY}')"
 
       - name: Start the task
         id: launch_task
