@@ -1,7 +1,7 @@
 import os
 import tensorflow as tf
 import numpy as np
-from clearml import PipelineDecorator, Task, Execution
+from clearml import PipelineDecorator, Task
 
 
 # Define data loading function
