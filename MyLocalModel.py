@@ -1,7 +1,7 @@
 import os
 import tensorflow as tf
 import numpy as np
-from clearml import PipelineDecorator, Task
+from clearml import PipelineDecorator, Task, Execution
 
 
 # Define data loading function
@@ -50,8 +50,9 @@ def data_transform(data):
     
     return x_train, y_train, x_test, y_test
 
+# Define component to select and compile the model
 @PipelineDecorator.component(cache=True)
-def select_model():
+def select_and_compile_model():
     model = tf.keras.Sequential([
         tf.keras.layers.Flatten(input_shape=(28, 28)),
         tf.keras.layers.Dense(128, activation='relu'),
@@ -66,6 +67,28 @@ def select_model():
 
     return model
 
+# Define component to train the model
+@PipelineDecorator.component(cache=True)
+def train_model(x_train, y_train, x_test, y_test, model):
+    model.fit(x_train, y_train, epochs=10, validation_data=(x_test, y_test))
+    return model
+
+# Define component to evaluate the model
+@PipelineDecorator.component(cache=True)
+def evaluate_model(x_test, y_test, model):
+    loss, accuracy = model.evaluate(x_test, y_test)
+    print("Test Loss:", loss)
+    print("Test Accuracy:", accuracy)
+
+    # Log accuracy metric using ClearML
+    task = Task.current_task()
+    if task:
+        # Provide an explicit iteration number or use None if not applicable
+        iteration = None
+        task.get_logger().report_scalar(title="Metrics", series="Accuracy", value=accuracy, iteration=iteration)
+
+    return loss, accuracy
+
 # Define the pipeline logic
 @PipelineDecorator.pipeline(name='MLOps Pipeline', project='MLOps Example', version='1.0')
 def mlops_pipeline(do_stuff: bool):
@@ -74,29 +97,45 @@ def mlops_pipeline(do_stuff: bool):
         data = preprocess_data(data)
         data = feature_engineering(data)
         data = data_transform(data)
-        best_model = select_model()
+        x_train, y_train, x_test, y_test = data
         
-        # Save best model locally
+        # Select and compile the model
+        best_model = select_and_compile_model()
+
+        # Train the model
+        trained_model = train_model(x_train, y_train, x_test, y_test, best_model)
+
+        # Evaluate the model
+        test_loss, test_accuracy = evaluate_model(x_test, y_test, trained_model)
+        
+        # Save the best model locally
         model_path = os.path.join(os.getcwd(), 'best_model.h5')
-        best_model.save(model_path)
+        trained_model.save(model_path)
         
-        return data, model_path
+        return data, model_path, test_loss, test_accuracy
     else:
         print("Not doing anything in the pipeline as 'do_stuff' is set to False.")
-
+        
 # Run the pipeline locally
 if __name__ == '__main__':
     # Execute the pipeline logic with do_stuff=True
     PipelineDecorator.run_locally()
-    data, model_path = mlops_pipeline(do_stuff=True)
-    # Initialize ClearML task
-    task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
+    
+    # Call the mlops_pipeline function
+    pipeline_result = mlops_pipeline(do_stuff=True)
+    
+    if pipeline_result:
+        data, model_path, test_loss, test_accuracy = pipeline_result
+        # Initialize ClearML task
+        task = Task.init(project_name="MLOps Example", task_name="MLOps with ClearML")
 
-    # Upload best model artifact to ClearML
-    task.upload_artifact('best_model.h5', model_path)
+        # Upload best model artifact to ClearML
+        task.upload_artifact('best_model.h5', model_path)
 
-    # Execute the pipeline remotely with the default execution queue
-    task.execute_remotely(queue_name="default")
+        # Execute the pipeline remotely with the default execution queue
+        task.execute_remotely(queue_name="default")
 
-    # Close ClearML task
-    task.close()
+        # Close ClearML task
+        task.close()
+    else:
+        print("Pipeline did not return any result.")
